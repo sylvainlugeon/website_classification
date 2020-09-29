@@ -1,10 +1,28 @@
+import numpy as np
+import pandas as pd
+
 import requests
 import multiprocessing as mp
 import json
 import gzip
 
 
+def main():
+    """"Entry point"""
+    
+    folder = '/dlabdata1/lugeon/'
+    #folder = '../data/'
+    name = 'websites_40000_5cat'
+    ext = '.gz'
+    step = 100
+    timeout = 5
+    feedback = 100
+    
+    data = pd.read_csv(folder + name + ext, header=0, names=['id', 'url', 'cat0'])
+    data = data[['url', 'cat0']]
+    write_html_to_file(df=data, step=step, path=folder+name+'_html.json.gz', timeout=timeout, feedback=feedback)
 
+        
 def get_homepage(url, timeout):
     """Return the html page corresponding to the url, or None if there was a request error"""
     
@@ -18,7 +36,7 @@ def get_homepage(url, timeout):
 def worker(start_id, end_id, df, q, timeout):
     """A worker that retrieve the html pages for a given slice of a dataframe and put them on the queue"""
     
-    # in case the df lenght is not divisible by the step size
+    # in case the df length is not divisible by the step size
     if end_id > df.shape[0]:
         end_id = df.shape[0]
     
@@ -101,3 +119,8 @@ def write_html_to_file(df, step, path, timeout, feedback):
     q.put('kill')
     p.close()
     p.join()
+    
+    
+    
+if __name__ == 'main':
+    main()
