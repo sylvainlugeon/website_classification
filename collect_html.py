@@ -63,7 +63,7 @@ def listener(q, path, nb_lines, feedback):
     with gzip.open(path, 'wt') as f:
 
         print('listening...')
-        f.write('{"":[')
+        f.write('{"data":[')
         f.flush()
 
         # listening on the queue
