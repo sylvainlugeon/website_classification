@@ -10,16 +10,19 @@ import gzip
 def main():
     """"Entry point"""
 
-    #folder = '/dlabdata1/lugeon/'
-    folder = '../data/'
-    name = 'websites_40000_5cat'
+    folder = '/dlabdata1/lugeon/'
+    #folder = '../data/'
+    name = "websites_40000_5cat"
     ext = '.gz'
     step = 100
-    timeout = 5
-    feedback = 100
+    timeout = 10
+    feedback = 1000
 
     data = pd.read_csv(folder + name + ext, header=0, names=['id', 'url', 'cat0'])
     data = data[['url', 'cat0']]
+    
+    print('retrieving html pages from', name)
+    
     write_html_to_file(df=data, step=step, path=folder+name+'_html.json.gz', timeout=timeout, feedback=feedback)
 
 
@@ -63,7 +66,7 @@ def listener(q, path, nb_lines, feedback):
     with gzip.open(path, 'wt') as f:
 
         print('listening...')
-        f.write('{"data":[')
+        #f.write('[')
         f.flush()
 
         # listening on the queue
@@ -72,7 +75,7 @@ def listener(q, path, nb_lines, feedback):
 
            # if all the workers are done
             if m == 'kill':
-                f.write(']}')
+                #f.write(']')
                 f.flush()
                 print('done writing to file')
                 break
@@ -82,14 +85,14 @@ def listener(q, path, nb_lines, feedback):
 
             # for the format
             if(i < nb_lines):
-                f.write(',\n')
+                f.write('\n')
                 i += 1
 
             f.flush()
 
             # verbose
             if (i % feedback == 0):
-                print('{}/{} written to the file'.format(i, nb_lines))
+                print('{}/{} written to file'.format(i, nb_lines))
 
 
 
