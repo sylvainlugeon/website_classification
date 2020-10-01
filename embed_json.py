@@ -5,7 +5,15 @@ import re
 from bs4 import BeautifulSoup
 import multiprocessing as mp
 
+# can't group in a main because of gensim???
 
+folder = "/dlabdata1/lugeon/"
+name = "websites_40000_5cat"
+ext = "_html.json.gz"
+
+print('computing embeddings for ' + name + ext)
+
+print('loading model...')
 model = api.load('word2vec-google-news-300')
 
 def word2vec_avg(str):
@@ -21,7 +29,7 @@ def word2vec_avg(str):
         except:
             pass
     if counter != 0:
-        return acc / counter
+        return (acc / counter).tolist()
     else:
         return None
 
@@ -49,11 +57,10 @@ def create_w2v_embeddings(df, pool):
 
 
 chunksize = 1000
-path = "/Users/sylvainlugeon/Documents/EPFL/semester_project/data/websites_1000_5cat_html.json.gz"
-reader = pd.read_json(path, orient='records', lines=True, chunksize=chunksize)
+reader = pd.read_json(folder + name + ext, orient='records', lines=True, chunksize=chunksize)
 
 df_main = pd.DataFrame([])
-pool = mp.Pool(mp.cpu_count())
+pool = mp.Pool(int( mp.cpu_count() / 2))
 
 i = 0
 for chunk in reader:
@@ -62,10 +69,14 @@ for chunk in reader:
     df_chunk = create_w2v_embeddings(df_chunk, pool)
     df_main = pd.concat((df_main, df_chunk))
     i +=1 
-    print('{} embeddings done'.format(chunksize*i))
+    print('chunk / {} embeddings'.format(chunksize*i))
 
 pool.close()
 pool.join()
-    
-df_main.to_csv('test.gz', compression='gzip')
+
+out_path = folder + name + "_emb.gz"
+print('writing dataframe in ' + out_path)
+df_main.to_csv(out_path, compression='gzip')
+
+
     

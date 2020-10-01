@@ -14,7 +14,7 @@ def main():
     #folder = '../data/'
     name = "websites_40000_5cat"
     ext = '.gz'
-    step = 100
+    step = 1000
     timeout = 10
     feedback = 1000
 
@@ -101,7 +101,7 @@ def write_html_to_file(df, step, path, timeout, feedback):
 
     manager = mp.Manager()
     q = manager.Queue()
-    p = mp.Pool(mp.cpu_count())
+    p = mp.Pool(int(mp.cpu_count()/2))
 
     # put listener to work first, will occupy 1 thread
     watcher = p.apply_async(listener, (q, path, df.shape[0], feedback))
