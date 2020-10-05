@@ -30,10 +30,16 @@ def get_homepage(url, timeout):
     """Return the html page corresponding to the url, or None if there was a request error"""
 
     try:
-        return requests.get(url, timeout=timeout).text
+        r = requests.get(url, timeout=timeout)
+        return r.text, r.status_code
     except(Exception):
         return None
 
+def none_or_subscriptable(obj, pos):
+    if obj != None:
+        return obj[pos]
+    else:
+        return obj
 
 
 def worker(start_id, end_id, df, q, timeout):
@@ -45,12 +51,13 @@ def worker(start_id, end_id, df, q, timeout):
 
     # copying the df and retrieving the html pages
     sliced_df = df.iloc[start_id: end_id].copy()
-    sliced_df['html'] = sliced_df.apply(lambda row: get_homepage(row.url, timeout), axis=1)
+    sliced_df['html_n_errcode'] = sliced_df.apply(lambda row: get_homepage(row.url, timeout), axis=1)
 
     # putting in the queue
     sliced_df.apply(lambda row: q.put({
         'url': row.url,
-        'html': row.html,
+        'html': none_or_subscriptable(row.html_n_errcode, 0),
+        'errcode': none_or_subscriptable(row.html_n_errcode, 1),
         'cat': row.cat0
     }), axis=1)
 

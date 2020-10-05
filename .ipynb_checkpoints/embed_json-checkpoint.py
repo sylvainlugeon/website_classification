@@ -10,7 +10,7 @@ def main():
     """ Entry point """
     
     folder = "/dlabdata1/lugeon/"
-    name = "websites_40000_5cat"
+    name = "websites_1000_5cat"
     ext = "_html.json.gz"
 
     print('computing embeddings for ' + name + ext)
@@ -42,8 +42,6 @@ def main():
 def word2vec_avg(sentence):
     """ Compute the words embeddings in a sentence and average them """
     
-    if sentence == '':
-        return None
     acc = np.zeros(300)
     counter = 0
     for word in sentence.split(' '):
@@ -63,7 +61,9 @@ def word2vec_avg(sentence):
 def clean_df(df):
     """ Remove all none elements of a dataframe """
     
-    df_valid = df[df.html.notnull()]
+    df_valid = df[df.errcode == 200]
+    df_valid = df_valid[df_valid.html.notnull()]
+    
     return df_valid
 
 
