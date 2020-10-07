@@ -15,11 +15,13 @@ def main():
 
     print('computing embeddings for ' + name + ext)
     
-    chunksize = 1000
+    chunksize = 100
     reader = pd.read_json(folder + name + ext, orient='records', lines=True, chunksize=chunksize)
 
     df_main = pd.DataFrame([])
-    pool = mp.Pool(int( mp.cpu_count() / 2))
+    #nb_cpu = int(mp.cpu_count() / 2)
+    nb_cpu = 4
+    pool = mp.Pool(nb_cpu)
 
     i = 0
     for chunk in reader:
