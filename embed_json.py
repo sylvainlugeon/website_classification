@@ -19,8 +19,8 @@ def main():
     reader = pd.read_json(folder + name + ext, orient='records', lines=True, chunksize=chunksize)
 
     df_main = pd.DataFrame([])
-    #nb_cpu = int(mp.cpu_count() / 2)
-    nb_cpu = 4
+    nb_cpu = int(mp.cpu_count() / 2)
+    #nb_cpu = 4
     pool = mp.Pool(nb_cpu)
 
     i = 0
