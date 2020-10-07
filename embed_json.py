@@ -10,7 +10,7 @@ def main():
     """ Entry point """
     
     folder = "/dlabdata1/lugeon/"
-    name = "websites_1000_5cat"
+    name = "websites_40000_5cat"
     ext = "_html.json.gz"
 
     print('computing embeddings for ' + name + ext)
