@@ -10,9 +10,11 @@ import numpy as np
 
 import multiprocessing as mp
 
+
 from tqdm import tqdm
 
 def main():
+    """ entry point """
     folder = "/dlabdata1/lugeon/"
     file_name = "websites_1000_5cat"
     ext = ".gz"
