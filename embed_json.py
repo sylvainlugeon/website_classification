@@ -10,7 +10,7 @@ def main():
     """ Entry point """
     
     folder = "/dlabdata1/lugeon/"
-    name = "websites_40000_5cat"
+    name = "websites_1000_5cat"
     ext = "_html.json.gz"
 
     print('computing embeddings for ' + name + ext)
@@ -97,7 +97,7 @@ def create_w2v_embeddings(df, pool):
     df['emb_n_len'] = pool.map(clean_and_embed, df.html)
     df['emb'] = df.apply(lambda x: x.emb_n_len[0], axis=1)
     df['len'] = df.apply(lambda x: x.emb_n_len[1], axis=1)
-    return df[['emb', 'len', 'cat']]
+    return df[['uid', 'emb', 'len', 'cat']]
 
 
 if __name__ == '__main__':

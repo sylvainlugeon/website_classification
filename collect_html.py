@@ -12,14 +12,14 @@ def main():
 
     folder = '/dlabdata1/lugeon/'
     #folder = '../data/'
-    name = "websites_40000_5cat"
+    name = "websites_1000_5cat"
     ext = '.gz'
     step = 100
     timeout = 10
     feedback = 1000
 
-    data = pd.read_csv(folder + name + ext, header=0, names=['id', 'url', 'cat0'])
-    data = data[['url', 'cat0']]
+    data = pd.read_csv(folder + name + ext, header=0, names=['uid', 'url', 'cat0'])
+    data = data[['uid', 'url', 'cat0']]
     
     print('retrieving html pages from', name)
     
@@ -55,6 +55,7 @@ def worker(start_id, end_id, df, q, timeout):
 
     # putting in the queue
     sliced_df.apply(lambda row: q.put({
+        'uid': row.uid,
         'url': row.url,
         'html': none_or_subscriptable(row.html_n_errcode, 0),
         'errcode': none_or_subscriptable(row.html_n_errcode, 1),
@@ -108,7 +109,7 @@ def write_html_to_file(df, step, path, timeout, feedback):
 
     manager = mp.Manager()
     q = manager.Queue()
-    nb_cpu = int(mp.cpu_count()/2)
+    nb_cpu = int(mp.cpu_count() / 4)
     p = mp.Pool(nb_cpu)
 
     # put listener to work first, will occupy 1 thread
