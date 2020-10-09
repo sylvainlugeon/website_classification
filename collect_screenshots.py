@@ -22,12 +22,13 @@ def main():
     ext = ".gz"
     
     # where the screenshots will be saved
-    out_folder = folder + file_name + "_screenshots/"
+    out_folder = folder + file_name + "_screenshots_upper/"
     
     print('Collecting screenshots from ' + file_name + '...')
 
     # reading dataframe
     df = pd.read_csv(folder + file_name + ext, names = ['uid', 'url', 'cat0'], header=0)
+    df = df.iloc[:100]
 
     # progess bar
     pbar = tqdm(total = df.shape[0])
@@ -35,7 +36,7 @@ def main():
     def update_pbar(item):
         pbar.update(chunk_size)
         
-    chunk_size = 100
+    chunk_size = 10
     
     nb_cpu = int(mp.cpu_count() / 4)
     pool = mp.Pool(nb_cpu)
@@ -72,8 +73,8 @@ def take_screenshot(url, out_path):
     options.headless = True
     
     # not download files automatically
-    prefs = {"download.prompt_for_download": True}
-    options.add_experimental_option("prefs", prefs)
+    #prefs = {"download.prompt_for_download": True}
+    #options.add_experimental_option("prefs", prefs)
     
     driver = webdriver.Chrome('/home/lugeon/drivers/chromedriver', options=options)
     
@@ -84,8 +85,14 @@ def take_screenshot(url, out_path):
     # access the url, takes a screenshot (only in png)
     try:
         driver.get(url)
+        
+        # with given dimensions
         driver.set_window_size(in_width, in_height) # May need manual adjustment
         driver.find_element_by_tag_name('body').screenshot(out_path + '.png')
+        
+        # only upper part
+        #driver.save_screenshot(out_path + '.png')
+        
         must_convert = True
 
     except:
