@@ -28,6 +28,8 @@ def main():
 
     # reading dataframe
     df = pd.read_csv(folder + file_name + ext, names = ['uid', 'url', 'cat0'], header=0)
+    df = df.sample(frac=1, random_state=42)
+    df = df.iloc[:50]
 
     # progess bar
     pbar = tqdm(total = df.shape[0])
@@ -35,9 +37,10 @@ def main():
     def update_pbar(item):
         pbar.update(chunk_size)
         
-    chunk_size = 100
+    chunk_size = 10
     
-    nb_cpu = int(mp.cpu_count() / 4)
+    nb_cpu = int(mp.cpu_count() / 2)
+    #nb_cpu = 1
     pool = mp.Pool(nb_cpu)
 
     for i in range(0, df.shape[0], chunk_size):
@@ -72,35 +75,39 @@ def take_screenshot(url, out_path):
     options.headless = True
     
     # not download files automatically
-    prefs = {"download.prompt_for_download": True}
+    prefs = {}
+    prefs["download.prompt_for_download"] = True
+    prefs["download.default_directory"] = "/dlabdata1/lugeon/downloads"
     options.add_experimental_option("prefs", prefs)
     
-    driver = webdriver.Chrome('/home/lugeon/drivers/chromedriver', options=options)
-    
-    driver.set_page_load_timeout(10) #10 seconds timeout
-    
-    must_convert = False
-
-    # access the url, takes a screenshot (only in png)
     try:
+    
+        driver = webdriver.Chrome('/home/lugeon/drivers/chromedriver', options=options)
+
+        driver.set_page_load_timeout(10) #10 seconds timeout
+
+        # access the url, takes a screenshot (only in png)
         driver.get(url)
-        driver.set_window_size(in_width, in_height) # May need manual adjustment
-        driver.find_element_by_tag_name('body').screenshot(out_path + '.png')
-        must_convert = True
+        
+        # with given dimensions
+        #driver.set_window_size(in_width, in_height) # May need manual adjustment
+        #driver.find_element_by_tag_name('body').screenshot(out_path + '.png')
+        
+        # only upper part
+        driver.save_screenshot(out_path + '.png')
 
-    except:
-        driver.quit()
-        return
-
-    # if screenshot succeeds, convert the png into a jpeg of lesser dimensions and quality
-    if must_convert:
+        # convert the png into a jpeg of lesser dimensions and quality
         img = Image.open(out_path + '.png')
         img = img.convert('RGB')
         img = img.resize((out_width, out_height), Image.ANTIALIAS)
         img.save(out_path + '.jpeg', optimize=True, quality=quality)
         os.remove(out_path + '.png')
+        
+    except Exception as e:
+        return
 
-    driver.quit()
+    finally:
+        driver.quit()
 
 
 def worker(start_id, end_id, df, out_folder):
