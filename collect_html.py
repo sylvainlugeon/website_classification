@@ -6,24 +6,31 @@ import multiprocessing as mp
 import json
 import gzip
 
+from tqdm import tqdm
+
 
 def main():
     """"Entry point"""
 
     folder = '/dlabdata1/lugeon/'
-    #folder = '../data/'
-    name = "websites_1000_5cat"
+    name = "websites_alexa_mostpop2"
     ext = '.gz'
+    
     step = 100
     timeout = 10
-    feedback = 1000
+    nb_samples = 20061
 
-    data = pd.read_csv(folder + name + ext, header=0, names=['uid', 'url', 'cat0'])
+    data = pd.read_csv(folder + name + ext, header=0, names=['uid', 'url', 'cat0', 'subcat0'])
     data = data[['uid', 'url', 'cat0']]
     
     print('retrieving html pages from', name)
     
-    write_html_to_file(df=data, step=step, path=folder+name+'_html.json.gz', timeout=timeout, feedback=feedback)
+    pbar = tqdm(total = nb_samples)
+    
+    def update_pbar(item):
+        pbar.update(step)
+        
+    write_html_to_file(df=data, step=step, path=folder+name+'_html.json.gz', timeout=timeout, callback=update_pbar)
 
 
 def get_homepage(url, timeout):
@@ -32,7 +39,7 @@ def get_homepage(url, timeout):
     try:
         r = requests.get(url, timeout=timeout)
         return r.text, r.status_code
-    except(Exception):
+    except Exception as e:
         return None
 
 def none_or_subscriptable(obj, pos):
@@ -66,14 +73,13 @@ def worker(start_id, end_id, df, q, timeout):
 
 
 
-def listener(q, path, nb_lines, feedback):
+def listener(q, path, nb_lines):
     """A listener that takes elements in the queue and write them into a file, in json format"""
 
     i = 1 # to control the format
 
     with gzip.open(path, 'wt') as f:
 
-        print('listening...')
         #f.write('[')
         f.flush()
 
@@ -98,29 +104,24 @@ def listener(q, path, nb_lines, feedback):
 
             f.flush()
 
-            # verbose
-            if (i % feedback == 0):
-                print('{}/{} written to file'.format(i, nb_lines))
 
-
-
-def write_html_to_file(df, step, path, timeout, feedback):
+def write_html_to_file(df, step, path, timeout, callback):
     """Retrieve and write in a file the html pages from urls in a dataframe"""
 
     manager = mp.Manager()
     q = manager.Queue()
-    nb_cpu = int(mp.cpu_count() / 4)
+    nb_cpu = int(mp.cpu_count() / 1) # can use all the cores, not really ressource-consuming 
     p = mp.Pool(nb_cpu)
 
     # put listener to work first, will occupy 1 thread
-    watcher = p.apply_async(listener, (q, path, df.shape[0], feedback))
+    watcher = p.apply_async(listener, (q, path, df.shape[0]))
 
     # fire off workers
     jobs = []
 
     # for each slice of the dataframe, a thread retreive the html pages
     for i in range(0, df.shape[0], step):
-        job = p.apply_async(worker, (i, i+step, df, q, timeout))
+        job = p.apply_async(worker, (i, i+step, df, q, timeout), callback=callback)
         jobs.append(job)
 
     # to be sure that all jobs are done

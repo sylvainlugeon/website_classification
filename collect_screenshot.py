@@ -2,16 +2,17 @@ import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import requests
+from requests.exceptions import RequestException
 
 from PIL import Image
 import os
 import glob
+import shutil
 
 import pandas as pd
 import numpy as np
 
 import multiprocessing as mp
-
 
 from tqdm import tqdm
 
@@ -20,23 +21,36 @@ def main():
     
     # file that contains the urls
     folder = "/dlabdata1/lugeon/"
-    file_name = "websites_1000_5cat"
+    file_name = "websites_alexa_mp2_1500_9cat_train"
     ext = ".gz"
     
-    # where the screenshots will be saved
-    out_folder = folder + file_name + "_screenshots/"
+    test_train = True
     
-    print('Collecting screenshots from ' + file_name + '...')
+    if test_train:
+        out_folder = folder + file_name[:-5] + "screenshots/" + file_name[-5:] + '/'
+    else:
+        out_folder = folder + file_name + "_screenshots/"
+        
+    # where the screenshots will be saved
+    
+    print('Out folder : ' + out_folder)
+    
+    print('Deleting all previous files')
     
     # remove all files in out folder
-    files = glob.glob(out_folder + '*')
-    for f in files:
-        os.remove(f)
+    dirs = glob.glob(out_folder + '*')
+    for d in dirs:
+        shutil.rmtree(d)
+        
+    print('Collecting screenshots from ' + file_name + '...')
 
     # reading dataframe
-    df = pd.read_csv(folder + file_name + ext, names = ['uid', 'url', 'cat0'], header=0)
-    df = df.sample(frac=1, random_state=42)
-    df = df.iloc[:500]
+    df = pd.read_csv(folder + file_name + ext, header=0, names=['uid', 'url', 'cat0', 'subcat0'])
+    #df = df.sample(frac=1, random_state=42)
+    #df = df.iloc[:100]
+    
+    for cat in df.cat0.unique():
+        os.mkdir(out_folder + cat)
     
 
     # progess bar
@@ -47,9 +61,9 @@ def main():
         
     chunk_size = 10
     
-    nb_cpu = int(mp.cpu_count() / 2)
+    nb_cpu = int(48)
     #nb_cpu = 1
-    pool = mp.Pool(nb_cpu)
+    pool = mp.Pool()
 
     # distribute the works within the workers
     for i in range(0, df.shape[0], chunk_size):
@@ -89,7 +103,7 @@ def take_screenshot(url, out_path):
     
         driver = webdriver.Chrome('/home/lugeon/drivers/chromedriver', options=options)
         
-        timeout = 10
+        timeout = 20
 
         driver.set_page_load_timeout(timeout)
         driver.set_window_size(in_width, in_height)
@@ -101,14 +115,15 @@ def take_screenshot(url, out_path):
         # (and not a file that will be downloaded)
         status_code = str(r.status_code)
         nice_status_code = status_code.startswith('2') or status_code.startswith('3')
-        nice_content_type = r.headers['content-type'].startswith('text/html')
+        #nice_status_code = status_code in ['200', '203']
+        nice_content_type = r.headers.get('content-type', '').startswith('text/html')
         
         if not(nice_status_code and nice_content_type):
             return
 
         # access the url, takes a screenshot (only in png)
         driver.get(url)
-        time.sleep(1) # so that the website's elements are loaded
+        time.sleep(2) # so that the website's elements are loaded
         driver.save_screenshot(out_path + '.png')
 
         # convert the png into a jpeg of lesser dimensions and quality
@@ -118,13 +133,15 @@ def take_screenshot(url, out_path):
         img.save(out_path + '.jpeg', optimize=True, quality=quality)
         os.remove(out_path + '.png')
         
+    except RequestException as e:
+        #print(e)
+        return
     except Exception as e:
         #print(e)
         return
 
     finally:
         driver.quit()
-
 
 def worker(start_id, end_id, df, out_folder):
     """ takes screenshots of websites that are within a slice of the dataframe """
@@ -135,10 +152,7 @@ def worker(start_id, end_id, df, out_folder):
 
     sliced_df = df.iloc[start_id: end_id]
     
-    sliced_df.apply(lambda row: take_screenshot(row.url, 
-                                                out_folder + str(row.uid)), # names of screenshots are the uid
-                                                axis=1)
-
+    sliced_df.apply(lambda row: take_screenshot(row.url, out_folder + str(row.cat0) + '/' + str(row.uid)), axis=1) 
 
 if __name__ == '__main__':
     main()
